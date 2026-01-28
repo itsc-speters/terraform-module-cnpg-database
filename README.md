@@ -22,7 +22,7 @@ Terraform module for creating PostgreSQL databases in CloudNative-PG clusters wi
 
 ```hcl
 module "my_app_database" {
-  source = "github.com/yourusername/terraform-module-cnpg-database"
+  source = "github.com/pascalinthecloud/terraform-module-cnpg-database"
 
   database = {
     name           = "my-app"
@@ -41,7 +41,7 @@ module "my_app_database" {
 
 ```hcl
 module "my_app_database" {
-  source = "github.com/yourusername/terraform-module-cnpg-database"
+  source = "github.com/pascalinthecloud/terraform-module-cnpg-database"
 
   database = {
     name           = "my-app"
@@ -66,7 +66,7 @@ module "my_app_database" {
 
 ```hcl
 module "my_app_database" {
-  source = "github.com/yourusername/terraform-module-cnpg-database"
+  source = "github.com/pascalinthecloud/terraform-module-cnpg-database"
 
   database = {
     name             = "my-app"
@@ -86,7 +86,7 @@ module "my_app_database" {
 
 ```hcl
 module "my_app_database" {
-  source = "github.com/yourusername/terraform-module-cnpg-database"
+  source = "github.com/pascalinthecloud/terraform-module-cnpg-database"
 
   database = {
     name           = "my-app"
