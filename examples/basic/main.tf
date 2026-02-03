@@ -20,11 +20,11 @@ module "example_app_database" {
 
   databases = [
     {
-      name                       = "example-app"
-      owner                      = "example_app_user"
-      password                   = var.database_password
-      databasereclaimpolicy      = "Retain"
-      create_connection_secret   = true
+      name                        = "example-app"
+      owner                       = "example_app_user"
+      password                    = var.database_password
+      reclaim_policy              = "Retain"
+      create_connection_secret    = true
       connection_secret_namespace = ""
     }
   ]

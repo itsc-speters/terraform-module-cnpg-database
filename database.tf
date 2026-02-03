@@ -14,9 +14,9 @@ resource "kubernetes_manifest" "database" {
       cluster = {
         name = var.cluster.name
       }
-      name                  = each.value.pg_database_name != null && each.value.pg_database_name != "" ? each.value.pg_database_name : replace(each.value.name, "-", "_")
-      owner                 = each.value.owner
-      databasereclaimpolicy = each.value.databasereclaimpolicy
+      name          = each.value.pg_database_name != null && each.value.pg_database_name != "" ? each.value.pg_database_name : replace(each.value.name, "-", "_")
+      owner         = each.value.owner
+      reclaimPolicy = each.value.reclaim_policy
     }
   }
 }
