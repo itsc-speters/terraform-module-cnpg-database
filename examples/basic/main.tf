@@ -14,24 +14,35 @@ provider "kubernetes" {
   config_path = "~/.kube/config"
 }
 
-# Create a database using the module
+# Create cluster and databases using the module
 module "example_app_database" {
   source = "../.."
 
-  database = {
-    name           = "example-app"
-    owner_username = "example_app_user"
-    password       = var.database_password
-  }
+  databases = [
+    {
+      name                       = "example-app"
+      owner                      = "example_app_user"
+      password                   = var.database_password
+      databasereclaimpolicy      = "Retain"
+      create_connection_secret   = true
+      connection_secret_namespace = ""
+    }
+  ]
 
   cluster = {
-    name      = "shared-postgres-prod"
-    namespace = "databases-prod"
+    name                       = "shared-postgres-dev"
+    namespace                  = "databases-dev"
+    instances                  = 1
+    storage_class              = "longhorn"
+    storage_size               = "10Gi"
+    postgresql_max_connections = "100"
+    # Other PostgreSQL parameters use defaults
   }
 
   labels = {
-    app        = "example-app"
-    managed-by = "terraform"
+    app         = "example-app"
+    environment = "dev"
+    managed-by  = "terraform"
   }
 }
 
@@ -41,7 +52,23 @@ output "connection_host" {
   value       = module.example_app_database.connection_host
 }
 
-output "connection_secret" {
-  description = "Name of the connection secret"
-  value       = module.example_app_database.connection_secret_name
+output "connection_port" {
+  description = "Database connection port"
+  value       = module.example_app_database.connection_port
+}
+
+output "database_names" {
+  description = "Names of the created databases"
+  value       = module.example_app_database.database_names
+}
+
+output "connection_secret_names" {
+  description = "Names of the connection secrets"
+  value       = module.example_app_database.connection_secret_names
+}
+
+output "connection_uris" {
+  description = "Full PostgreSQL connection URIs"
+  value       = module.example_app_database.connection_uris
+  sensitive   = true
 }

@@ -1,0 +1,75 @@
+# Create the PostgreSQL cluster with managed roles
+resource "kubernetes_manifest" "cluster" {
+  depends_on = [kubernetes_secret_v1.database_password]
+
+  # Ignore server-side defaults added by CNPG operator
+  computed_fields = [
+    "spec.postgresql.parameters",
+  ]
+
+  manifest = {
+    apiVersion = "postgresql.cnpg.io/v1"
+    kind       = "Cluster"
+    metadata = {
+      name      = var.cluster.name
+      namespace = var.cluster.namespace
+      labels    = var.labels
+    }
+    spec = {
+      instances = var.cluster.instances
+
+      # Storage using configurable storage class
+      storage = {
+        storageClass = var.cluster.storage_class
+        size         = var.cluster.storage_size
+      }
+
+      # PostgreSQL configuration
+      postgresql = {
+        parameters = {
+          max_connections              = var.cluster.postgresql_max_connections
+          shared_buffers               = var.cluster.postgresql_shared_buffers
+          effective_cache_size         = var.cluster.postgresql_effective_cache_size
+          maintenance_work_mem         = var.cluster.postgresql_maintenance_work_mem
+          checkpoint_completion_target = var.cluster.postgresql_checkpoint_completion_target
+          wal_buffers                  = var.cluster.postgresql_wal_buffers
+          default_statistics_target    = var.cluster.postgresql_default_statistics_target
+          random_page_cost             = var.cluster.postgresql_random_page_cost
+          effective_io_concurrency     = var.cluster.postgresql_effective_io_concurrency
+          work_mem                     = var.cluster.postgresql_work_mem
+          min_wal_size                 = var.cluster.postgresql_min_wal_size
+          max_wal_size                 = var.cluster.postgresql_max_wal_size
+        }
+      }
+
+      # Bootstrap
+      bootstrap = {
+        initdb = {
+          database = var.cluster.bootstrap_database
+          owner    = var.cluster.bootstrap_owner
+        }
+      }
+
+      # Monitoring
+      monitoring = {
+        enablePodMonitor = var.cluster.enable_pod_monitor
+      }
+
+      # Resources
+      resources = var.cluster.resources
+
+      # Managed roles - define users for each database here
+      managed = {
+        roles = [for db in var.databases : {
+          name    = db.owner
+          ensure  = "present"
+          login   = true
+          inherit = true
+          passwordSecret = {
+            name = "${db.name}-user-password"
+          }
+        }]
+      }
+    }
+  }
+}
