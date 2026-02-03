@@ -1,10 +1,10 @@
 variable "databases" {
-  description = "List of databases to create. Each object must have name, owner, password, and reclaim_policy."
+  description = "List of databases to create. Each object must have name, owner, password, and database_reclaim_policy."
   type = list(object({
     name                        = string
     owner                       = string
     password                    = string
-    reclaim_policy              = string
+    database_reclaim_policy     = optional(string, "retain")
     pg_database_name            = optional(string, "")
     create_connection_secret    = optional(bool, true)
     connection_secret_namespace = optional(string, "")

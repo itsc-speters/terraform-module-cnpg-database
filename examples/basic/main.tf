@@ -23,7 +23,7 @@ module "example_app_database" {
       name                        = "example-app"
       owner                       = "example_app_user"
       password                    = var.database_password
-      reclaim_policy              = "Retain"
+      database_reclaim_policy     = "retain"
       create_connection_secret    = true
       connection_secret_namespace = ""
     }
