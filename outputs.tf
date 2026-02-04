@@ -36,3 +36,27 @@ output "connection_uris" {
   value       = [for db in var.databases : "postgresql://${db.owner}:${db.password}@${var.cluster.name}-rw.${var.cluster.namespace}.svc.cluster.local:5432/${db.pg_database_name != null && db.pg_database_name != "" ? db.pg_database_name : replace(db.name, "-", "_")}"]
   sensitive   = true
 }
+
+# ============================================
+# Backup Outputs
+# ============================================
+
+output "backup_enabled" {
+  description = "Whether backups are configured for this cluster"
+  value       = var.backup.enabled
+}
+
+output "backup_secret_name" {
+  description = "Name of the Kubernetes secret containing backup credentials"
+  value       = var.backup.enabled ? kubernetes_secret_v1.backup_credentials[0].metadata[0].name : null
+}
+
+output "scheduled_backup_name" {
+  description = "Name of the ScheduledBackup resource"
+  value       = var.backup.enabled && var.backup.create_scheduled_backup ? "${var.cluster.name}-scheduled" : null
+}
+
+output "backup_destination_path" {
+  description = "S3 destination path for backups"
+  value       = var.backup.enabled ? "s3://${var.backup.s3_bucket_name}/" : null
+}

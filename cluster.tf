@@ -70,6 +70,47 @@ resource "kubernetes_manifest" "cluster" {
           }
         }]
       }
+
+      # Backup configuration (conditional based on backup.enabled)
+      backup = var.backup.enabled ? {
+        barmanObjectStore = {
+          # S3 destination
+          destinationPath = "s3://${var.backup.s3_bucket_name}/"
+          endpointURL     = var.backup.s3_endpoint_url != "" ? var.backup.s3_endpoint_url : null
+          serverName      = var.cluster.name
+
+          # S3 credentials reference
+          s3Credentials = {
+            accessKeyId = {
+              name = kubernetes_secret_v1.backup_credentials[0].metadata[0].name
+              key  = "ACCESS_KEY_ID"
+            }
+            secretAccessKey = {
+              name = kubernetes_secret_v1.backup_credentials[0].metadata[0].name
+              key  = "ACCESS_SECRET_KEY"
+            }
+          }
+
+          # WAL (Write-Ahead Log) configuration
+          wal = {
+            compression = var.backup.wal_compression
+            maxParallel = 2
+          }
+
+          # Data backup configuration
+          data = {
+            compression         = var.backup.data_compression
+            jobs                = var.backup.jobs
+            immediateCheckpoint = false
+          }
+        }
+
+        # Retention policy
+        retentionPolicy = var.backup.retention_policy
+
+        # Backup target
+        target = var.backup.target
+      } : null
     }
   }
 }

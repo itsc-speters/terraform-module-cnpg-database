@@ -44,6 +44,21 @@ module "example_app_database" {
     environment = "dev"
     managed-by  = "terraform"
   }
+
+  # Backup configuration (optional)
+  backup = {
+    enabled                 = var.backup_enabled
+    s3_endpoint_url         = var.s3_endpoint_url
+    s3_bucket_name          = var.s3_bucket_name
+    s3_access_key_id        = var.s3_access_key_id
+    s3_secret_access_key    = var.s3_secret_access_key
+    retention_policy        = "90d"
+    schedule                = "0 2 * * *" # Daily at 2 AM UTC
+    wal_compression         = "gzip"
+    data_compression        = "gzip"
+    target                  = "prefer-standby"
+    create_scheduled_backup = true
+  }
 }
 
 # Output connection details
@@ -71,4 +86,15 @@ output "connection_uris" {
   description = "Full PostgreSQL connection URIs"
   value       = module.example_app_database.connection_uris
   sensitive   = true
+}
+
+# Backup outputs
+output "backup_enabled" {
+  description = "Whether backups are configured"
+  value       = module.example_app_database.backup_enabled
+}
+
+output "backup_destination" {
+  description = "S3 destination for backups"
+  value       = module.example_app_database.backup_destination_path
 }
