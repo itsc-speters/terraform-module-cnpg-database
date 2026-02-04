@@ -63,3 +63,4 @@ output "backup_destination_path" {
   description = "S3 destination path for backups"
   value       = var.backup.enabled ? "s3://${var.backup.s3_bucket_name}/" : null
   sensitive   = true
+}
