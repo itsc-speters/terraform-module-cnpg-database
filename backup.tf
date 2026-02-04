@@ -92,21 +92,14 @@ resource "kubernetes_manifest" "scheduled_backup" {
         name = var.cluster.name
       }
 
-      # Backup method
+      # Backup method (barmanObjectStore = S3-based backups)
       method = "barmanObjectStore"
 
       # Take backup immediately on creation
       immediate = var.backup.immediate
 
-      # Target instance for backups
+      # Target instance for backups (prefer-standby reduces load on primary)
       target = var.backup.target
-
-      # Online (hot) backup configuration
-      online = true
-      onlineConfiguration = {
-        immediateCheckpoint = false
-        waitForArchive      = true
-      }
     }
   }
 
