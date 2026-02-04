@@ -44,19 +44,22 @@ output "connection_uris" {
 output "backup_enabled" {
   description = "Whether backups are configured for this cluster"
   value       = var.backup.enabled
+  sensitive   = true
 }
 
 output "backup_secret_name" {
   description = "Name of the Kubernetes secret containing backup credentials"
   value       = var.backup.enabled ? kubernetes_secret_v1.backup_credentials[0].metadata[0].name : null
+  sensitive   = true
 }
 
 output "scheduled_backup_name" {
   description = "Name of the ScheduledBackup resource"
   value       = var.backup.enabled && var.backup.create_scheduled_backup ? "${var.cluster.name}-scheduled" : null
+  sensitive   = true
 }
 
 output "backup_destination_path" {
   description = "S3 destination path for backups"
   value       = var.backup.enabled ? "s3://${var.backup.s3_bucket_name}/" : null
-}
+  sensitive   = true
