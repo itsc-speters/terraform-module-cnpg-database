@@ -28,11 +28,11 @@ resource "kubernetes_secret_v1" "connection" {
     labels    = var.labels
   }
   data = {
-    host     = base64encode("${var.cluster.name}-rw.${var.cluster.namespace}.svc.cluster.local")
-    port     = base64encode("5432")
-    database = base64encode(each.value.pg_database_name != null && each.value.pg_database_name != "" ? each.value.pg_database_name : replace(each.value.name, "-", "_"))
-    username = base64encode(each.value.owner)
-    password = base64encode(each.value.password)
-    uri      = base64encode("postgresql://${each.value.owner}:${each.value.password}@${var.cluster.name}-rw.${var.cluster.namespace}.svc.cluster.local:5432/${each.value.pg_database_name != null && each.value.pg_database_name != "" ? each.value.pg_database_name : replace(each.value.name, "-", "_")}")
+    host     = "${var.cluster.name}-rw.${var.cluster.namespace}.svc.cluster.local"
+    port     = "5432"
+    database = each.value.pg_database_name != null && each.value.pg_database_name != "" ? each.value.pg_database_name : replace(each.value.name, "-", "_")
+    username = each.value.owner
+    password = each.value.password
+    uri      = "postgresql://${each.value.owner}:${each.value.password}@${var.cluster.name}-rw.${var.cluster.namespace}.svc.cluster.local:5432/${each.value.pg_database_name != null && each.value.pg_database_name != "" ? each.value.pg_database_name : replace(each.value.name, "-", "_")}"
   }
 }
