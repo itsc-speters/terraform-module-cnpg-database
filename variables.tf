@@ -1,5 +1,9 @@
 variable "databases" {
-  description = "List of databases to create. Each object must have name, owner, password, and database_reclaim_policy."
+  description = <<-EOT
+    List of databases to create. Each object must have name, owner, password, and database_reclaim_policy.
+    If the list is empty, the cluster will be created with no managed database users.
+    Users can manually add roles to the cluster or add databases through this module later.
+  EOT
   type = list(object({
     name                        = string
     owner                       = string
@@ -9,7 +13,40 @@ variable "databases" {
     create_connection_secret    = optional(bool, true)
     connection_secret_namespace = optional(string, "")
   }))
-  default = []
+  default   = []
+  sensitive = true
+
+  validation {
+    condition = alltrue([
+      for db in var.databases :
+      can(regex("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", db.name))
+    ])
+    error_message = "Each database.name must be a valid Kubernetes resource name (lowercase alphanumeric with hyphens)."
+  }
+
+  validation {
+    condition = alltrue([
+      for db in var.databases :
+      can(regex("^[A-Za-z_][A-Za-z0-9_]*$", db.owner))
+    ])
+    error_message = "Each database.owner must be a valid PostgreSQL identifier (start with a letter or underscore, followed by letters, digits, or underscores)."
+  }
+
+  validation {
+    condition = alltrue([
+      for db in var.databases :
+      length(db.password) >= 8
+    ])
+    error_message = "Each database.password must be at least 8 characters long."
+  }
+
+  validation {
+    condition = alltrue([
+      for db in var.databases :
+      contains(["delete", "retain"], db.database_reclaim_policy)
+    ])
+    error_message = "Each database_reclaim_policy must be either \"delete\" or \"retain\"."
+  }
 }
 
 variable "cluster" {
@@ -18,7 +55,7 @@ variable "cluster" {
     name                                    = optional(string, "default-cluster")
     namespace                               = optional(string, "default")
     instances                               = optional(number, 1)
-    storage_class                           = optional(string, "longhorn")
+    storage_class                           = optional(string, "longhorn") # Override with your cluster's available storage class
     storage_size                            = optional(string, "10Gi")
     postgresql_max_connections              = optional(string, "100")
     postgresql_shared_buffers               = optional(string, "256MB")
@@ -108,5 +145,14 @@ variable "backup" {
   validation {
     condition     = contains(["primary", "prefer-standby"], var.backup.target)
     error_message = "Backup target must be either 'primary' or 'prefer-standby'."
+  }
+
+  validation {
+    condition = !var.backup.enabled || (
+      var.backup.s3_bucket_name != "" &&
+      var.backup.s3_access_key_id != "" &&
+      var.backup.s3_secret_access_key != ""
+    )
+    error_message = "When backup is enabled, s3_bucket_name, s3_access_key_id, and s3_secret_access_key must all be provided."
   }
 }
