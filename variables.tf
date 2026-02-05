@@ -78,9 +78,9 @@ variable "cluster" {
         cpu    = optional(string, "250m")
       }), {})
       limits = optional(object({
-        memory = optional(string, "1Gi")
-        cpu    = optional(string, "500m")
-      }), {})
+        memory = optional(string)
+        cpu    = optional(string)
+      }), null)
     }), {})
   })
   default = {}

@@ -18,6 +18,9 @@ resource "kubernetes_manifest" "cluster" {
     spec = {
       instances = var.cluster.instances
 
+      # Resources
+      resources = var.cluster.resources
+
       # Storage using configurable storage class
       storage = {
         storageClass = var.cluster.storage_class
@@ -54,9 +57,6 @@ resource "kubernetes_manifest" "cluster" {
       monitoring = {
         enablePodMonitor = var.cluster.enable_pod_monitor
       }
-
-      # Resources
-      resources = var.cluster.resources
 
       # Managed roles - define users based on distinct database owners
       managed = {
