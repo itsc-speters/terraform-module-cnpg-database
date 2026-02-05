@@ -1,6 +1,6 @@
 # Create the PostgreSQL cluster with managed roles
 resource "kubernetes_manifest" "cluster" {
-  depends_on = [kubernetes_secret_v1.database_password]
+  depends_on = length(var.databases) > 0 ? [kubernetes_secret_v1.database_password] : []
 
   # Ignore server-side defaults added by CNPG operator
   computed_fields = [
@@ -58,15 +58,16 @@ resource "kubernetes_manifest" "cluster" {
       # Resources
       resources = var.cluster.resources
 
-      # Managed roles - define users for each database here
+      # Managed roles - define users based on distinct database owners
       managed = {
-        roles = [for db in var.databases : {
-          name    = db.owner
+        roles = [for owner in distinct([for db in var.databases : db.owner]) : {
+          name    = owner
           ensure  = "present"
           login   = true
           inherit = true
           passwordSecret = {
-            name = "${db.name}-user-password"
+            # Use the first database name associated with this owner
+            name = "${element([for db in var.databases : db.name if db.owner == owner], 0)}-user-password"
           }
         }]
       }
@@ -94,6 +95,9 @@ resource "kubernetes_manifest" "cluster" {
           # WAL (Write-Ahead Log) configuration
           wal = {
             compression = var.backup.wal_compression
+            # WAL upload parallelism is intentionally limited to 2 to avoid excessive I/O/CPU pressure
+            # and to follow CNPG/Barman recommendations. Data backup parallelism is configured separately
+            # via var.backup.jobs in the "data" block below.
             maxParallel = 2
           }
 

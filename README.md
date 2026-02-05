@@ -16,8 +16,6 @@ Terraform module for creating PostgreSQL databases in CloudNative-PG clusters wi
 ## Prerequisites
 
 - CloudNative-PG operator installed in your Kubernetes cluster
-- An existing CloudNative-PG Cluster resource
-- The cluster must have the database user defined in `spec.managed.roles`
 
 ## Usage
 
@@ -27,11 +25,11 @@ Terraform module for creating PostgreSQL databases in CloudNative-PG clusters wi
 module "my_app_database" {
   source = "github.com/pascalinthecloud/terraform-module-cnpg-database"
 
-  database = {
-    name           = "my-app"
-    owner_username = "my_app_user"
-    password       = var.database_password # Use a secure variable or secret manager
-  }
+  databases = [{
+    name     = "my-app"
+    owner    = "my_app_user"
+    password = var.database_password # Use a secure variable or secret manager
+  }]
 
   cluster = {
     name      = "shared-postgres-prod"
@@ -46,11 +44,11 @@ module "my_app_database" {
 module "my_app_database" {
   source = "github.com/pascalinthecloud/terraform-module-cnpg-database"
 
-  database = {
-    name           = "my-app"
-    owner_username = "my_app_user"
-    password       = var.database_password
-  }
+  databases = [{
+    name     = "my-app"
+    owner    = "my_app_user"
+    password = var.database_password
+  }]
 
   cluster = {
     name      = "shared-postgres-prod"
@@ -71,12 +69,12 @@ module "my_app_database" {
 module "my_app_database" {
   source = "github.com/pascalinthecloud/terraform-module-cnpg-database"
 
-  database = {
+  databases = [{
     name             = "my-app"
     pg_database_name = "myapp_production" # Custom PostgreSQL database name
-    owner_username   = "my_app_user"
+    owner            = "my_app_user"
     password         = var.database_password
-  }
+  }]
 
   cluster = {
     name      = "shared-postgres-prod"
@@ -91,18 +89,17 @@ module "my_app_database" {
 module "my_app_database" {
   source = "github.com/pascalinthecloud/terraform-module-cnpg-database"
 
-  database = {
-    name           = "my-app"
-    owner_username = "my_app_user"
-    password       = var.database_password
-  }
+  databases = [{
+    name                        = "my-app"
+    owner                       = "my_app_user"
+    password                    = var.database_password
+    connection_secret_namespace = "my-app-namespace" # Deploy connection secret to app namespace
+  }]
 
   cluster = {
     name      = "shared-postgres-prod"
     namespace = "databases-prod"
   }
-
-  connection_secret_namespace = "my-app-namespace" # Deploy connection secret to app namespace
 }
 ```
 
@@ -112,11 +109,11 @@ module "my_app_database" {
 module "my_app_database" {
   source = "github.com/pascalinthecloud/terraform-module-cnpg-database"
 
-  database = {
-    name           = "my-app"
-    owner_username = "my_app_user"
-    password       = var.database_password
-  }
+  databases = [{
+    name     = "my-app"
+    owner    = "my_app_user"
+    password = var.database_password
+  }]
 
   cluster = {
     name      = "shared-postgres-prod"
@@ -142,28 +139,6 @@ module "my_app_database" {
     environment = "production"
   }
 }
-```
-
-## Cluster Configuration
-
-The CloudNative-PG cluster **must** have the database user defined in `spec.managed.roles`:
-
-```yaml
-apiVersion: postgresql.cnpg.io/v1
-kind: Cluster
-metadata:
-  name: shared-postgres-prod
-  namespace: databases-prod
-spec:
-  instances: 3
-  managed:
-    roles:
-      - name: my_app_user
-        ensure: present
-        login: true
-        inherit: true
-        passwordSecret:
-          name: my-app-user-password  # Created by this module
 ```
 
 <!-- BEGIN_TF_DOCS -->
