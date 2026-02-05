@@ -1,23 +1,24 @@
-output "database_name" {
-  description = "Name of the created database in PostgreSQL"
-  value       = var.database.pg_database_name != "" ? var.database.pg_database_name : replace(var.database.name, "-", "_")
+
+output "database_names" {
+  description = "Names of the created databases in PostgreSQL"
+  value       = [for db in var.databases : db.pg_database_name != null && db.pg_database_name != "" ? db.pg_database_name : replace(db.name, "-", "_")]
   sensitive   = true
 }
 
-output "owner_username" {
-  description = "Username of the database owner"
-  value       = var.database.owner_username
+output "owner_usernames" {
+  description = "Usernames of the database owners"
+  value       = [for db in var.databases : db.owner]
   sensitive   = true
 }
 
-output "password_secret_name" {
-  description = "Name of the Kubernetes secret containing the database password"
-  value       = kubernetes_secret_v1.database_password.metadata[0].name
+output "password_secret_names" {
+  description = "Names of the Kubernetes secrets containing the database passwords"
+  value       = [for s in kubernetes_secret_v1.database_password : s.metadata[0].name]
 }
 
-output "connection_secret_name" {
-  description = "Name of the Kubernetes secret containing connection details"
-  value       = var.create_connection_secret ? kubernetes_secret_v1.connection[0].metadata[0].name : null
+output "connection_secret_names" {
+  description = "Names of the Kubernetes secrets containing connection details"
+  value       = [for s in kubernetes_secret_v1.connection : s.metadata[0].name]
 }
 
 output "connection_host" {
@@ -30,8 +31,36 @@ output "connection_port" {
   value       = "5432"
 }
 
-output "connection_uri" {
-  description = "Full PostgreSQL connection URI"
-  value       = "postgresql://${var.database.owner_username}:${var.database.password}@${var.cluster.name}-rw.${var.cluster.namespace}.svc.cluster.local:5432/${var.database.pg_database_name != "" ? var.database.pg_database_name : replace(var.database.name, "-", "_")}"
+output "connection_uris" {
+  description = "Full PostgreSQL connection URIs for each database"
+  value       = [for db in var.databases : "postgresql://${db.owner}:${db.password}@${var.cluster.name}-rw.${var.cluster.namespace}.svc.cluster.local:5432/${db.pg_database_name != null && db.pg_database_name != "" ? db.pg_database_name : replace(db.name, "-", "_")}"]
+  sensitive   = true
+}
+
+# ============================================
+# Backup Outputs
+# ============================================
+
+output "backup_enabled" {
+  description = "Whether backups are configured for this cluster"
+  value       = var.backup.enabled
+  sensitive   = true
+}
+
+output "backup_secret_name" {
+  description = "Name of the Kubernetes secret containing backup credentials"
+  value       = var.backup.enabled ? kubernetes_secret_v1.backup_credentials[0].metadata[0].name : null
+  sensitive   = true
+}
+
+output "scheduled_backup_name" {
+  description = "Name of the ScheduledBackup resource"
+  value       = var.backup.enabled && var.backup.create_scheduled_backup ? "${var.cluster.name}-scheduled" : null
+  sensitive   = true
+}
+
+output "backup_destination_path" {
+  description = "S3 destination path for backups"
+  value       = var.backup.enabled ? "s3://${var.backup.s3_bucket_name}/" : null
   sensitive   = true
 }

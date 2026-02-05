@@ -1,35 +1,89 @@
-variable "database" {
-  description = "Database configuration object"
-  type = object({
-    name             = string
-    pg_database_name = optional(string, "")
-    owner_username   = string
-    password         = string
-  })
+variable "databases" {
+  description = <<-EOT
+    List of databases to create. Each object must have name, owner, password, and database_reclaim_policy.
+    If the list is empty, the cluster will be created with no managed database users.
+    Users can manually add roles to the cluster or add databases through this module later.
+  EOT
+  type = list(object({
+    name                        = string
+    owner                       = string
+    password                    = string
+    database_reclaim_policy     = optional(string, "retain")
+    pg_database_name            = optional(string, "")
+    create_connection_secret    = optional(bool, true)
+    connection_secret_namespace = optional(string, "")
+  }))
+  default   = []
   sensitive = true
 
   validation {
-    condition     = can(regex("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", var.database.name))
-    error_message = "Database name must be a valid Kubernetes resource name (lowercase alphanumeric with hyphens)."
+    condition = alltrue([
+      for db in var.databases :
+      can(regex("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", db.name))
+    ])
+    error_message = "Each database.name must be a valid Kubernetes resource name (lowercase alphanumeric with hyphens)."
   }
 
   validation {
-    condition     = can(regex("^[a-z_][a-z0-9_]*$", var.database.owner_username))
-    error_message = "Owner username must be a valid PostgreSQL identifier (lowercase alphanumeric and underscores, starting with letter or underscore)."
+    condition = alltrue([
+      for db in var.databases :
+      can(regex("^[A-Za-z_][A-Za-z0-9_]*$", db.owner))
+    ])
+    error_message = "Each database.owner must be a valid PostgreSQL identifier (start with a letter or underscore, followed by letters, digits, or underscores)."
   }
 
   validation {
-    condition     = length(var.database.password) >= 8
-    error_message = "Password must be at least 8 characters long."
+    condition = alltrue([
+      for db in var.databases :
+      length(db.password) >= 8
+    ])
+    error_message = "Each database.password must be at least 8 characters long."
+  }
+
+  validation {
+    condition = alltrue([
+      for db in var.databases :
+      contains(["delete", "retain"], db.database_reclaim_policy)
+    ])
+    error_message = "Each database_reclaim_policy must be either \"delete\" or \"retain\"."
   }
 }
 
 variable "cluster" {
   description = "CloudNative-PG cluster configuration object"
   type = object({
-    name      = string
-    namespace = string
+    name                                    = optional(string, "default-cluster")
+    namespace                               = optional(string, "default")
+    instances                               = optional(number, 1)
+    storage_class                           = optional(string, "longhorn") # Override with your cluster's available storage class
+    storage_size                            = optional(string, "10Gi")
+    postgresql_max_connections              = optional(string, "100")
+    postgresql_shared_buffers               = optional(string, "256MB")
+    postgresql_effective_cache_size         = optional(string, "1GB")
+    postgresql_maintenance_work_mem         = optional(string, "64MB")
+    postgresql_checkpoint_completion_target = optional(string, "0.9")
+    postgresql_wal_buffers                  = optional(string, "16MB")
+    postgresql_default_statistics_target    = optional(string, "100")
+    postgresql_random_page_cost             = optional(string, "1.1")
+    postgresql_effective_io_concurrency     = optional(string, "200")
+    postgresql_work_mem                     = optional(string, "2621kB")
+    postgresql_min_wal_size                 = optional(string, "512MB")
+    postgresql_max_wal_size                 = optional(string, "2GB")
+    bootstrap_database                      = optional(string, "postgres")
+    bootstrap_owner                         = optional(string, "postgres")
+    enable_pod_monitor                      = optional(bool, true)
+    resources = optional(object({
+      requests = optional(object({
+        memory = optional(string, "512Mi")
+        cpu    = optional(string, "250m")
+      }), {})
+      limits = optional(object({
+        memory = optional(string, "1Gi")
+        cpu    = optional(string, "500m")
+      }), {})
+    }), {})
   })
+  default = {}
 
   validation {
     condition     = can(regex("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", var.cluster.name))
@@ -42,20 +96,63 @@ variable "cluster" {
   }
 }
 
-variable "create_connection_secret" {
-  description = "Whether to create a connection details secret for applications"
-  type        = bool
-  default     = true
-}
-
-variable "connection_secret_namespace" {
-  description = "Namespace to create the connection secret in (defaults to the database namespace)"
-  type        = string
-  default     = ""
-}
-
 variable "labels" {
   description = "Additional labels to add to all resources"
   type        = map(string)
   default     = {}
+}
+
+variable "backup" {
+  description = "Backup configuration for S3-based backups using Barman"
+  type = object({
+    enabled                 = optional(bool, false)
+    s3_endpoint_url         = optional(string, "")
+    s3_bucket_name          = optional(string, "")
+    s3_access_key_id        = optional(string, "")
+    s3_secret_access_key    = optional(string, "")
+    retention_policy        = optional(string, "30d")
+    schedule                = optional(string, "0 2 * * *")
+    wal_compression         = optional(string, "gzip")
+    data_compression        = optional(string, "gzip")
+    jobs                    = optional(number, 2)
+    target                  = optional(string, "prefer-standby")
+    create_scheduled_backup = optional(bool, true)
+    immediate               = optional(bool, false)
+  })
+  default   = {}
+  sensitive = true
+
+  validation {
+    condition     = !var.backup.enabled || can(regex("^[1-9][0-9]*[dwm]$", var.backup.retention_policy))
+    error_message = "Retention policy must be in format '<number><unit>' where unit is d (days), w (weeks), or m (months)."
+  }
+
+  validation {
+    condition     = contains(["gzip", "bzip2", "snappy", "none"], var.backup.wal_compression)
+    error_message = "WAL compression must be one of: gzip, bzip2, snappy, none."
+  }
+
+  validation {
+    condition     = contains(["gzip", "bzip2", "snappy", "none"], var.backup.data_compression)
+    error_message = "Data compression must be one of: gzip, bzip2, snappy, none."
+  }
+
+  validation {
+    condition     = var.backup.jobs >= 1 && var.backup.jobs <= 8
+    error_message = "Backup jobs must be between 1 and 8."
+  }
+
+  validation {
+    condition     = contains(["primary", "prefer-standby"], var.backup.target)
+    error_message = "Backup target must be either 'primary' or 'prefer-standby'."
+  }
+
+  validation {
+    condition = !var.backup.enabled || (
+      var.backup.s3_bucket_name != "" &&
+      var.backup.s3_access_key_id != "" &&
+      var.backup.s3_secret_access_key != ""
+    )
+    error_message = "When backup is enabled, s3_bucket_name, s3_access_key_id, and s3_secret_access_key must all be provided."
+  }
 }
