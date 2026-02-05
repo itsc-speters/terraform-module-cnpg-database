@@ -1,11 +1,11 @@
 # Create databases from the list
 resource "kubernetes_manifest" "database" {
-  for_each   = { for db in var.databases : db.name => db }
+  for_each   = { for db in local.databases_for_iteration : db.name => db }
   depends_on = [kubernetes_manifest.cluster]
 
   lifecycle {
     precondition {
-      condition     = length([for db in var.databases : db.name]) == length(distinct([for db in var.databases : db.name]))
+      condition     = length([for db in local.databases_for_iteration : db.name]) == length(distinct([for db in local.databases_for_iteration : db.name]))
       error_message = "All database names in var.databases must be unique. Duplicate names would cause a duplicate key error in the for_each map."
     }
   }

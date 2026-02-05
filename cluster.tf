@@ -1,6 +1,6 @@
 # Create the PostgreSQL cluster with managed roles
 resource "kubernetes_manifest" "cluster" {
-  depends_on = length(var.databases) > 0 ? [kubernetes_secret_v1.database_password] : []
+  depends_on = [kubernetes_secret_v1.database_password]
 
   # Ignore server-side defaults added by CNPG operator
   computed_fields = [
@@ -60,7 +60,7 @@ resource "kubernetes_manifest" "cluster" {
 
       # Managed roles - define users based on distinct database owners
       managed = {
-        roles = [for owner in distinct([for db in var.databases : db.owner]) : {
+        roles = [for owner in distinct([for db in local.databases_for_iteration : db.owner]) : {
           name    = owner
           ensure  = "present"
           login   = true
@@ -68,7 +68,7 @@ resource "kubernetes_manifest" "cluster" {
           passwordSecret = {
             # Use the first database name associated with this owner.
             # This is safe because 'owner' comes from the databases list, so at least one database exists per owner.
-            name = "${element([for db in var.databases : db.name if db.owner == owner], 0)}-user-password"
+            name = "${element([for db in local.databases_for_iteration : db.name if db.owner == owner], 0)}-user-password"
           }
         }]
       }

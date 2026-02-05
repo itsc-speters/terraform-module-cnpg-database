@@ -1,6 +1,6 @@
 # Create password secrets for each database owner
 resource "kubernetes_secret_v1" "database_password" {
-  for_each = { for db in var.databases : db.name => db }
+  for_each = { for db in local.databases_for_iteration : db.name => db }
   metadata {
     name      = "${each.value.name}-user-password"
     namespace = var.cluster.namespace
@@ -20,7 +20,7 @@ resource "kubernetes_secret_v1" "database_password" {
 
 # Optionally create connection secrets for each database
 resource "kubernetes_secret_v1" "connection" {
-  for_each   = { for db in var.databases : db.name => db if db.create_connection_secret }
+  for_each   = { for db in local.databases_for_iteration : db.name => db if db.create_connection_secret }
   depends_on = [kubernetes_manifest.database]
   metadata {
     name      = "${each.value.name}-db-connection"
