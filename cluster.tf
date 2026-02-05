@@ -66,7 +66,8 @@ resource "kubernetes_manifest" "cluster" {
           login   = true
           inherit = true
           passwordSecret = {
-            # Use the first database name associated with this owner
+            # Use the first database name associated with this owner.
+            # This is safe because 'owner' comes from the databases list, so at least one database exists per owner.
             name = "${element([for db in var.databases : db.name if db.owner == owner], 0)}-user-password"
           }
         }]
