@@ -5,6 +5,7 @@ resource "kubernetes_manifest" "cluster" {
   # Ignore server-side defaults added by CNPG operator
   computed_fields = [
     "spec.postgresql.parameters",
+    "spec.resources.limits",
   ]
 
   manifest = {
