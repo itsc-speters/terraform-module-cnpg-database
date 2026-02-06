@@ -6,6 +6,7 @@ resource "kubernetes_manifest" "cluster" {
   computed_fields = [
     "spec.postgresql.parameters",
     "spec.resources.limits",
+    "spec.inheritedMetadata",
   ]
 
   manifest = {
