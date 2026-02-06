@@ -19,18 +19,24 @@ resource "kubernetes_manifest" "cluster" {
     spec = {
       instances = var.cluster.instances
 
+      # Inherited metadata for PVCs and other resources
+      inheritedMetadata = length(var.cluster.inherited_labels) > 0 || length(var.cluster.inherited_annotations) > 0 ? {
+        labels      = length(var.cluster.inherited_labels) > 0 ? var.cluster.inherited_labels : null
+        annotations = length(var.cluster.inherited_annotations) > 0 ? var.cluster.inherited_annotations : null
+      } : null
+
       # Resources
-      resources = var.cluster.resources
+      resources = merge(
+        {
+          requests = var.cluster.resources.requests
+        },
+        var.cluster.resources.limits != null ? { limits = var.cluster.resources.limits } : {}
+      )
 
       # Storage using configurable storage class
       storage = {
         storageClass = var.cluster.storage_class
         size         = var.cluster.storage_size
-        pvcTemplate = length(var.cluster.storage_labels) > 0 ? {
-          metadata = {
-            labels = var.cluster.storage_labels
-          }
-        } : null
       }
 
       # PostgreSQL configuration

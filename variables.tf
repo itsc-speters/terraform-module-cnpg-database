@@ -57,7 +57,8 @@ variable "cluster" {
     instances                               = optional(number, 1)
     storage_class                           = optional(string, "longhorn") # Override with your cluster's available storage class
     storage_size                            = optional(string, "10Gi")
-    storage_labels                          = optional(map(string), {})
+    inherited_labels                        = optional(map(string), {})
+    inherited_annotations                   = optional(map(string), {})
     postgresql_max_connections              = optional(string, "100")
     postgresql_shared_buffers               = optional(string, "256MB")
     postgresql_effective_cache_size         = optional(string, "1GB")
