@@ -26,6 +26,11 @@ resource "kubernetes_manifest" "cluster" {
       storage = {
         storageClass = var.cluster.storage_class
         size         = var.cluster.storage_size
+        pvcTemplate = length(var.cluster.storage_labels) > 0 ? {
+          metadata = {
+            labels = var.cluster.storage_labels
+          }
+        } : null
       }
 
       # PostgreSQL configuration
