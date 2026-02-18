@@ -5,6 +5,8 @@ resource "kubernetes_manifest" "cluster" {
   # Ignore server-side defaults added by CNPG operator
   computed_fields = [
     "spec.postgresql.parameters",
+    "spec.resources.limits",
+    "spec.inheritedMetadata",
   ]
 
   manifest = {
@@ -18,8 +20,19 @@ resource "kubernetes_manifest" "cluster" {
     spec = {
       instances = var.cluster.instances
 
+      # Inherited metadata for PVCs and other resources
+      inheritedMetadata = length(var.cluster.inherited_labels) > 0 || length(var.cluster.inherited_annotations) > 0 ? {
+        labels      = length(var.cluster.inherited_labels) > 0 ? var.cluster.inherited_labels : null
+        annotations = length(var.cluster.inherited_annotations) > 0 ? var.cluster.inherited_annotations : null
+      } : null
+
       # Resources
-      resources = var.cluster.resources
+      resources = merge(
+        {
+          requests = var.cluster.resources.requests
+        },
+        var.cluster.resources.limits != null ? { limits = var.cluster.resources.limits } : {}
+      )
 
       # Storage using configurable storage class
       storage = {
