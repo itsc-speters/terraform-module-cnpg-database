@@ -69,6 +69,7 @@ resource "kubernetes_manifest" "cluster" {
       # Monitoring
       monitoring = {
         enablePodMonitor = var.cluster.enable_pod_monitor
+        podMonitorLabels = length(var.cluster.pod_monitor_labels) > 0 ? var.cluster.pod_monitor_labels : null
       }
 
       # Managed roles - define users based on distinct database owners
