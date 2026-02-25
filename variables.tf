@@ -74,6 +74,7 @@ variable "cluster" {
     bootstrap_database                      = optional(string, "postgres")
     bootstrap_owner                         = optional(string, "postgres")
     enable_pod_monitor                      = optional(bool, true)
+    pod_monitor_labels                      = optional(map(string), {})
     resources = optional(object({
       requests = optional(object({
         memory = optional(string, "512Mi")
